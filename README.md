@@ -1,377 +1,213 @@
-# 🎬 IMDB Sentiment Analysis II
+# Sentiment Analysis — IMDB Movie Reviews
 
-Advanced sentiment analysis system for movie reviews using multiple Machine Learning and Deep Learning approaches.
+> **AI/ML Engineering Assessment** | End-to-End NLP Classification Pipeline
 
-## 🎯 Project Overview
+A production-grade sentiment analysis system built with a full NLP pipeline, 4-model comparison, class imbalance handling, and a clean REST API for model serving.
 
-This project demonstrates a complete ML pipeline for sentiment classification of IMDB movie reviews, featuring:
+---
 
-- **4 Different Models**: Logistic Regression, SVM, Random Forest, and BERT
-- **Comprehensive EDA**: Data visualization and analysis
-- **Advanced NLP Pipeline**: Text preprocessing with multiple techniques
-- **Model Comparison**: Performance evaluation with multiple metrics
-- **REST API**: FastAPI-based serving with probability outputs
-- **Production Ready**: Error handling, validation, and monitoring
+## Project Structure
 
-## 📊 Dataset
-
-- **Source**: IMDB Dataset with 50,000 movie reviews
-- **Labels**: Binary sentiment (Positive/Negative)
-- **Format**: CSV with `review` and `sentiment` columns
-- **Size**: ~66MB
-
-## 🏗️ Architecture
-
-### ML Pipeline
 ```
-Data Loading → EDA → Preprocessing → Feature Engineering → Model Training → Evaluation → Deployment
+├── notebooks/
+│   ├── 01_data_preparation_eda.ipynb   # EDA + NLP Preprocessing Pipeline
+│   └── 02_model_development.ipynb      # Feature Eng + 4 Models + Evaluation
+├── app/
+│   ├── main.py                         # FastAPI application entry point
+│   ├── ml_model.py                     # Model loading & inference logic
+│   └── preprocessing.py               # NLP preprocessing (shared pipeline)
+├── models/                             # Trained model artifacts (git-ignored)
+├── data/                               # Processed data & EDA plots (git-ignored)
+├── archive/                            # Raw IMDB dataset (git-ignored)
+├── requirements.txt
+└── .gitignore
 ```
 
-### Models Implemented
-1. **Logistic Regression** - Fast, interpretable baseline
-2. **Support Vector Machine** - Robust linear classifier
-3. **Random Forest** - Ensemble method for non-linear patterns
-4. **BERT** - Transformer model for contextual understanding
+---
 
-## 🚀 Quick Start
+## 1. Algorithm & Architecture Choices
+
+### Why TF-IDF + Traditional ML as primary approach?
+
+| Criterion | TF-IDF + ML | Full Transformer Fine-tuning |
+|---|---|---|
+| Training Time | < 5 minutes | 2–6 hours (GPU needed) |
+| Inference Latency | ~1ms | ~80ms (CPU) |
+| RAM Requirements | ~200 MB | ~2–4 GB |
+| Accuracy (IMDB) | ~90–93% | ~93–95% |
+| Reproducibility | ✅ Easy | ❌ Requires GPU |
+
+**Conclusion**: For IMDB binary classification, TF-IDF + Logistic Regression / XGBoost hits a "good enough" ceiling with dramatically lower resource cost. A Transformer comparison (DistilBERT) is included in Notebook 02 for reference.
+
+### NLP Pipeline
+- **Cleaning**: HTML tag stripping, URL removal, regex character filtering
+- **Tokenisation**: NLTK `word_tokenize`
+- **Stopword Removal**: NLTK English stopwords corpus
+- **Lemmatisation**: NLTK `WordNetLemmatizer` (WordNet corpus)
+
+### Feature Engineering
+- **TF-IDF Vectorizer**: `unigrams + bigrams`, `max_features=50,000`, `sublinear_tf=True`
+
+### Class Imbalance Strategy
+- IMDB is balanced (25k / 25k), but `class_weight='balanced'` is applied to all sklearn models and `scale_pos_weight` is applied to XGBoost — making the approach robust for imbalanced real-world datasets.
+
+### 4 Models Compared
+1. **Logistic Regression** — Strong linear baseline, fast, interpretable
+2. **Naive Bayes (Multinomial)** — Classic text classification baseline
+3. **Random Forest** — Ensemble method with bagging
+4. **XGBoost** — Gradient boosting, typically highest accuracy
+
+---
+
+## 2. Setup & Installation
 
 ### Prerequisites
-- Python 3.8+
-- GPU (optional, for BERT training)
+- Python 3.9+
+- pip
 
-### Installation
-
-1. **Clone the repository**
+### Step 1: Clone the repository
 ```bash
-git clone https://github.com/lilbuu-glitch/imdb-review-sentiment-analysis-II.git
-cd imdb-review-sentiment-analysis-II
+git clone https://github.com/lilbuu-glitch/imdb-review-sentiment-analysis.git
+cd imdb-review-sentiment-analysis
 ```
 
-2. **Create virtual environment**
-```bash
-python -m venv venv
-# Windows
-venv\Scripts\activate
-# Linux/Mac
-source venv/bin/activate
-```
-
-3. **Install dependencies**
+### Step 2: Install dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-4. **Download the dataset**
-- Place `IMDB Dataset.csv` in the `archive/` directory
-- Or download from [Kaggle IMDB Dataset](https://www.kaggle.com/datasets/lakshmi25npathi/imdb-dataset-of-50k-movie-reviews)
+### Step 3: Prepare the dataset
+Download the [IMDB Dataset from Kaggle](https://www.kaggle.com/datasets/lakshmi25npathi/imdb-dataset-of-50k-movie-reviews) and place it:
+```
+archive/IMDB Dataset.csv
+```
 
-### Running the Project
-
-#### Option 1: Full Pipeline (Recommended)
-Run the Jupyter notebooks in order:
-
-1. **Data Preparation & EDA**
+### Step 4: Run Notebook 01 — Data Preparation & EDA
 ```bash
-jupyter notebook 01_data_preparation_eda.ipynb
+jupyter notebook notebooks/01_data_preparation_eda.ipynb
 ```
+Run all cells. This will produce `data/processed_imdb_data.csv`.
 
-2. **Model Development & Comparison**
+### Step 5: Run Notebook 02 — Model Development
 ```bash
-jupyter notebook 02_model_development_comparison.ipynb
+jupyter notebook notebooks/02_model_development.ipynb
 ```
+Run all cells. This will produce `models/best_model.joblib`.
 
-#### Option 2: API Only (Pre-trained Models)
-If you have pre-trained models, start the API directly:
+---
+
+## 3. Running the API
 
 ```bash
-python app.py
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-The API will be available at `http://localhost:8000`
+The API will be available at:
+- **API root**: http://127.0.0.1:8000
+- **Swagger UI**: http://127.0.0.1:8000/docs
+- **ReDoc**: http://127.0.0.1:8000/redoc
 
-## 📁 Project Structure
+---
 
-```
-imdb-review-sentiment-analysis-II/
-├── archive/
-│   └── IMDB Dataset.csv          # Raw dataset
-├── 01_data_preparation_eda.ipynb # Data exploration and preprocessing
-├── 02_model_development_comparison.ipynb # Model training and comparison
-├── app.py                        # FastAPI application
-├── requirements.txt              # Python dependencies
-├── README.md                     # This file
-├── processed_imdb_data.csv       # Processed dataset (generated)
-├── model_comparison_results.csv  # Model performance comparison (generated)
-├── logistic_regression_model.joblib # Trained model (generated)
-├── svm_model.joblib              # Trained model (generated)
-├── random_forest_model.joblib    # Trained model (generated)
-├── bert_sentiment_model/         # BERT model directory (generated)
-└── best_model_info.pkl           # Best model information (generated)
-```
+## 4. API Endpoints
 
-## 🧠 Model Performance
+### `GET /`
+Health check.
 
-Based on comprehensive evaluation:
-
-| Model | Accuracy | Precision | Recall | F1-Score | Training Time |
-|-------|----------|-----------|--------|----------|---------------|
-| Logistic Regression | ~0.89 | ~0.89 | ~0.89 | ~0.89 | ~10s |
-| SVM | ~0.90 | ~0.90 | ~0.90 | ~0.90 | ~30s |
-| Random Forest | ~0.85 | ~0.85 | ~0.85 | ~0.85 | ~60s |
-| BERT | ~0.92 | ~0.92 | ~0.92 | ~0.92 | ~300s |
-
-*Note: BERT was trained on a subset (2000 samples) for faster training. Full training would yield better results.*
-
-## 🛠️ API Usage
-
-### Start the API
-```bash
-python app.py
-```
-
-### Available Endpoints
-
-#### 1. Health Check
-```bash
-GET /health
-```
-
-#### 2. Model Information
-```bash
-GET /models
-```
-
-#### 3. Single Prediction
-```bash
-POST /predict
-Content-Type: application/json
-
+**Response:**
+```json
 {
-    "text": "This movie was absolutely fantastic! Great acting and storyline.",
-    "model": "logistic_regression"
+    "status": "ok",
+    "message": "Sentiment Analysis API is running.",
+    "endpoints": {
+        "POST /predict": "Classify sentiment of a text review.",
+        "GET  /docs": "Interactive Swagger UI documentation."
+    }
+}
+```
+
+---
+
+### `POST /predict`
+
+Classify the sentiment of a review.
+
+**Request Body:**
+```json
+{
+    "text": "This movie was absolutely fantastic! A true masterpiece."
 }
 ```
 
 **Response:**
 ```json
 {
-    "sentiment": "positive",
-    "confidence": 0.95,
-    "probability": {
-        "negative": 0.05,
-        "positive": 0.95
-    },
-    "model_used": "logistic_regression",
-    "processing_time": 0.023
+    "sentiment": "Positive",
+    "confidence_score": 0.9831,
+    "probabilities": {
+        "Negative": 0.0169,
+        "Positive": 0.9831
+    }
 }
 ```
-
-#### 4. Batch Prediction
-```bash
-POST /predict/batch
-Content-Type: application/json
-
-{
-    "reviews": [
-        "Great movie with excellent acting!",
-        "Terrible plot and bad acting."
-    ],
-    "model": "bert"
-}
-```
-
-### Interactive Documentation
-- **Swagger UI**: `http://localhost:8000/docs`
-- **ReDoc**: `http://localhost:8000/redoc`
-
-## 🧪 Testing the API
-
-### Using cURL
-```bash
-# Single prediction
-curl -X POST "http://localhost:8000/predict" \
-     -H "Content-Type: application/json" \
-     -d '{
-         "text": "This movie was amazing!",
-         "model": "logistic_regression"
-     }'
-
-# Health check
-curl -X GET "http://localhost:8000/health"
-
-# Available models
-curl -X GET "http://localhost:8000/models"
-```
-
-### Using Python
-```python
-import requests
-
-# Single prediction
-response = requests.post(
-    "http://localhost:8000/predict",
-    json={
-        "text": "This movie was fantastic!",
-        "model": "bert"
-    }
-)
-print(response.json())
-
-# Batch prediction
-response = requests.post(
-    "http://localhost:8000/predict/batch",
-    json={
-        "reviews": [
-            "Great movie!",
-            "Bad acting."
-        ],
-        "model": "svm"
-    }
-)
-print(response.json())
-```
-
-## 🔧 Technical Details
-
-### Text Preprocessing Pipeline
-1. **HTML Tag Removal**: Clean HTML artifacts
-2. **URL/Email Removal**: Remove non-text elements
-3. **Special Character Removal**: Keep only letters and spaces
-4. **Lowercase Conversion**: Standardize text
-5. **Tokenization**: Split into words
-6. **Stopword Removal**: Remove common words (keep negations)
-7. **Lemmatization**: Reduce words to base form
-
-### Feature Engineering
-- **TF-IDF Vectorization**: 10,000 features, 1-2 ngrams
-- **BERT Embeddings**: Contextual word representations
-- **Class Balance**: Balanced dataset with equal positive/negative samples
-
-### Model Selection Rationale
-
-#### Logistic Regression
-- **Pros**: Fast, interpretable, good baseline
-- **Use Case**: Quick predictions, feature importance analysis
-
-#### Support Vector Machine
-- **Pros**: Robust, handles high-dimensional data well
-- **Use Case**: When margin maximization is important
-
-#### Random Forest
-- **Pros**: Handles non-linear patterns, feature importance
-- **Use Case**: Complex relationships, ensemble benefits
-
-#### BERT
-- **Pros**: Contextual understanding, state-of-the-art performance
-- **Use Case**: When accuracy is paramount and resources available
-
-## 📈 Evaluation Metrics
-
-- **Accuracy**: Overall correct predictions
-- **Precision**: True positive rate
-- **Recall**: Sensitivity
-- **F1-Score**: Harmonic mean of precision and recall
-- **ROC-AUC**: Area under ROC curve
-- **PR-AUC**: Area under precision-recall curve
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-1. **CUDA Out of Memory (BERT)**
-   - Reduce batch size in training
-   - Use smaller model variant
-   - Clear GPU cache: `torch.cuda.empty_cache()`
-
-2. **Model Loading Errors**
-   - Ensure all model files are present
-   - Check file permissions
-   - Verify model compatibility
-
-3. **Slow API Response**
-   - Use CPU-optimized models for inference
-   - Implement model caching
-   - Consider model quantization
-
-4. **Memory Issues**
-   - Reduce dataset size for testing
-   - Use streaming for large datasets
-   - Increase system RAM
-
-### Performance Optimization
-
-1. **For Production**:
-   - Use model quantization
-   - Implement request batching
-   - Add Redis caching
-   - Use GPU for BERT inference
-
-2. **For Development**:
-   - Use subset of data for testing
-   - Reduce BERT sequence length
-   - Disable verbose logging
-
-## 🔮 Future Enhancements
-
-1. **Model Improvements**:
-   - Fine-tune larger BERT variants
-   - Implement ensemble methods
-   - Add more model architectures
-
-2. **Features**:
-   - Real-time streaming predictions
-   - Model monitoring and drift detection
-   - A/B testing framework
-   - Explainable AI (SHAP, LIME)
-
-3. **Deployment**:
-   - Docker containerization
-   - Kubernetes orchestration
-   - CI/CD pipeline
-   - Auto-scaling
-
-## 📝 Model Comparison Insights
-
-### Key Findings
-
-1. **Traditional ML vs Deep Learning**:
-   - Traditional ML models are faster and more interpretable
-   - BERT provides superior accuracy but requires more resources
-   - SVM performs surprisingly well for text classification
-
-2. **Training Time vs Performance**:
-   - Logistic Regression: Best speed/performance ratio
-   - BERT: Highest accuracy but slowest training
-   - Random Forest: Moderate performance, longer training
-
-3. **Practical Recommendations**:
-   - Use Logistic Regression for real-time applications
-   - Use BERT for batch processing where accuracy is critical
-   - Consider SVM as a good compromise
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🙏 Acknowledgments
-
-- IMDB dataset providers
-- Hugging Face for transformer models
-- Scikit-learn for traditional ML algorithms
-- FastAPI for the web framework
-
-## 📞 Contact
-
-For questions or suggestions, please open an issue on GitHub.
 
 ---
 
-**⭐ If this project helped you, please give it a star!**
+## 5. Example Usage
+
+### cURL
+```bash
+# Positive review
+curl -X POST "http://127.0.0.1:8000/predict" \
+     -H "Content-Type: application/json" \
+     -d '{"text": "This movie was absolutely fantastic! A true masterpiece."}'
+
+# Negative review
+curl -X POST "http://127.0.0.1:8000/predict" \
+     -H "Content-Type: application/json" \
+     -d '{"text": "Terrible film. Complete waste of time and money. I hated every second of it."}'
+```
+
+### Python (requests)
+```python
+import requests
+
+url = "http://127.0.0.1:8000/predict"
+payload = {"text": "One of the best films I have ever seen. Absolutely breathtaking!"}
+response = requests.post(url, json=payload)
+print(response.json())
+# {
+#     "sentiment": "Positive",
+#     "confidence_score": 0.9712,
+#     "probabilities": {"Negative": 0.0288, "Positive": 0.9712}
+# }
+```
+
+### Postman
+- **Method**: `POST`
+- **URL**: `http://127.0.0.1:8000/predict`
+- **Body**: raw → JSON
+```json
+{
+    "text": "I couldn't finish watching it. Absolutely dreadful storyline."
+}
+```
+
+---
+
+## 6. Evaluation Metrics (Expected Results)
+
+| Model | Accuracy | Precision | Recall | F1-Score |
+|---|---|---|---|---|
+| Logistic Regression | ~0.906 | ~0.907 | ~0.906 | ~0.906 |
+| Naive Bayes | ~0.858 | ~0.867 | ~0.858 | ~0.857 |
+| Random Forest | ~0.852 | ~0.853 | ~0.852 | ~0.852 |
+| **XGBoost** | **~0.927** | **~0.927** | **~0.927** | **~0.927** |
+
+> *Exact values will vary slightly depending on environment. Run Notebook 02 for current results.*
+
+---
+
+## 7. Notes
+- Model file (`models/best_model.joblib`) is excluded from git via `.gitignore` due to potential size. Run the notebooks to regenerate it.
+- Dataset (`archive/IMDB Dataset.csv`) is also excluded. See Step 3 above.
